@@ -1,0 +1,41 @@
+FROM golang:1.21 as builder
+
+ENV CGO_ENABLED 0
+
+ARG BUILD_VERSION
+
+ARG BUILD_DATE
+
+ARG BUILD_COMMIT
+
+RUN mkdir /database
+
+COPY go.* /database/
+
+WORKDIR /database
+
+RUN go mod download
+
+COPY . /database
+
+RUN go build -ldflags "-X main.version=${BUILD_VERSION} -X main.buildDate=${BUILD_DATE} -X main.commit=${BUILD_COMMIT}" -o /database/bin/database
+
+FROM alpine:3.14
+
+ARG BUILD_VERSION  
+
+ARG BUILD_DATE
+
+COPY  --from=builder /database /usr/local/bin
+
+ENTRYPOINT [ "database" ]
+
+CMD ["-h"]
+
+
+LABEL org.opencontainers.image.title="database" \
+      org.opencontainers.image.description="Database" \
+      org.opencontainers.image.version="${BUILD_VERSION}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.source="github.com/DanielMEH/database" \
